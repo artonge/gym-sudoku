@@ -94,11 +94,9 @@ class SudokuEnv(gym.Env):
 
 	# Make a random grid and store it in self.base
 	def __init__(self):
+		# The box space is continuous. This don't apply to a sudoku grid, but there is no other choices
 		self.observation_space = spaces.Box(low=1, high=9, shape=(9, 9))
-		self.action_space = spaces.Tuple((
-			spaces.Box(low=0, high=8, shape=(2)),
-			spaces.Box(low=1, high=9, shape=(1)))
-		)
+		self.action_space = spaces.Tuple((spaces.Discrete(9), spaces.Discrete(9), spaces.Discrete(9)))
 		# Get a random solution for an empty grid
 		self.grid = []
 		self.base = getSolutions(np.zeros(shape=(9,9)))[0]
@@ -132,21 +130,26 @@ class SudokuEnv(gym.Env):
 	# 	- a copy of the grid to prevent alteration from the user
 	# 	- a reward: - negative if action leads to an error
 	#	            - positive if action is correct or grid is resolved
-	# The user can replace a digit that was already replaced
 	def _step(self, action):
 		oldGrid = np.copy(self.grid)
-		self.grid[action[0]] = action[1]
+
+		# The user can't replace a value that was already set
+		if self.grid[action[0], action[1]] != 0:
+			return np.copy(self.grid), -1, False, None
+
+		# We add one to the action because the action space is from 0-8 and we want a value in 1-9
+		self.grid[action[0], action[1]] = action[2]+1
 
 		stats = checkSolution(self.grid)
 		# If grid is complet or correct, return positive reward
 		if stats == resolved:
-			return np.copy(self.grid), 1, True
+			return np.copy(self.grid), 1, True, None
 		elif stats == unfinished:
-			return np.copy(self.grid), 1, False
-		elif stats == error:
+			return np.copy(self.grid), 1, False, None
+		if stats == error:
 			# If move is wrong, return to old state, and return negative reward
 			self.grid = oldGrid
-			return np.copy(self.grid), -1, False
+			return np.copy(self.grid), -1, False, None
 
 
 	# Replace self.grid with self.base
