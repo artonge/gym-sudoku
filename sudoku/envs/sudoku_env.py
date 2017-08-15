@@ -53,7 +53,10 @@ def countItem(vector, item):
 
 
 # Recursivly find all solutions (backtracking)
-def getSolutions(grid, stopAt=1):
+# @param stopAt make the backtracking stop when it found x solutions
+# @param i, j force to start the backtracking from the case (i, j)
+# @param omit prevent looking into a possibility
+def getSolutions(grid, stopAt=1, i=-1, j=-1, omit=-1):
 	N = len(grid)
 	check = checkSolution(grid)
 	# Check if grid is resolve or if there is an error
@@ -62,12 +65,13 @@ def getSolutions(grid, stopAt=1):
 	if check == error:
 		return np.empty(shape=(0,N,N), dtype=int)
 
-	# Get the first empty spot and start backtracking from it
-	for i in xrange(N):
-		for j in xrange(N):
-			# If not empty spot continue
+	# If i and j are not setted, get the first empty spot and start backtracking from it
+	if i == -1:
+		for i in xrange(N):
+			for j in xrange(N):
+				# If not empty spot continue
+				if grid[i, j] == 0: break
 			if grid[i, j] == 0: break
-		if grid[i, j] == 0: break
 
 	# Randomize possible values
 	values = np.arange(1, N+1)
@@ -75,6 +79,7 @@ def getSolutions(grid, stopAt=1):
 	# Try all possiblities from those values until we reach the max nb of solutions asked by stopAt
 	solutions = np.empty(shape=(0,N,N), dtype=int)
 	for value in values:
+		if omit == value: continue
 		cGrid = np.copy(grid)
 		cGrid[i, j] = value
 		subSolutions = getSolutions(cGrid, stopAt=stopAt-len(solutions))
@@ -82,9 +87,6 @@ def getSolutions(grid, stopAt=1):
 		if len(solutions) >= stopAt:
 			return solutions
 	return solutions
-
-
-
 
 
 class SudokuEnv(gym.Env):
@@ -111,23 +113,26 @@ class SudokuEnv(gym.Env):
 		count = 0
 		# Try to put 0 instead of the original value for all positions
 		# Stop after 40 --> medium difficulty
+		# This is slow after 40 because, the algorithm looks for 1 solutions when there is none,
+		# so it realy check all the possibilities...
 		for i, j in positions:
 			if count > 40:
 				break
 			oldValue = self.base[i, j]
 			self.base[i, j] = 0
-			if not len(getSolutions(self.base, 2)) == 1:
+			solutions = getSolutions(self.base, stopAt=2, i=i, j=j, omit=oldValue)
+			if len(solutions) == 0:
+				count += 1
+			else:
 				# if more than one solution undo
 				self.base[i, j] = oldValue
-			else:
-				count += 1
 
 
 	# @return
 	# 	- a copy of the grid to prevent alteration from the user
 	# 	- a reward: - negative if action leads to an error
 	#	            - positive if action is correct or grid is resolved
-	# The user can replace a digit that was already replaced 
+	# The user can replace a digit that was already replaced
 	def _step(self, action):
 		oldGrid = np.copy(self.grid)
 		self.grid[action[0]] = action[1]
