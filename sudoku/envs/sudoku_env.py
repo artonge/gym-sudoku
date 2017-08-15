@@ -12,6 +12,14 @@ unfinished = 1
 error = 2
 
 
+# Check a solution is correct by checking the 3 contraints on all digits
+#	- digit is unique in row
+#	- digit is unique in column
+#	- digit is unique in square
+#  @return
+#	- resolved if the grid is resolved
+#	- unfinished if the grid is not yet finished
+#	- error if one of the contraints is not respected
 def checkSolution(grid):
 	N = len(grid)
 
@@ -36,6 +44,7 @@ def checkSolution(grid):
 	return resolved
 
 
+# Count the number of time the item appears in a vector
 def countItem(vector, item):
 	count = 0
 	for item2 in vector:
@@ -43,6 +52,7 @@ def countItem(vector, item):
 	return count
 
 
+# Recursivly find all solutions (backtracking)
 def getSolutions(grid, stopAt=1):
 	N = len(grid)
 	check = checkSolution(grid)
@@ -53,23 +63,23 @@ def getSolutions(grid, stopAt=1):
 		return np.empty(shape=(0,N,N), dtype=int)
 
 	# Get the first empty spot and start backtracking from it
-	solutions = np.empty(shape=(0,N,N), dtype=int)
-	for i in range(N):
-		for j in range(N):
+	for i in xrange(N):
+		for j in xrange(N):
 			# If not empty spot continue
-			if grid[i, j] != 0:
-				continue
-			# Randomize possible values
-			values = np.arange(1, N+1)
-			np.random.shuffle(values)
-			# Try all possiblity from those values
-			for value in values:
-				cGrid = np.copy(grid)
-				cGrid[i, j] = value
-				subSolutions = getSolutions(cGrid, stopAt=stopAt-len(solutions))
-				solutions = np.concatenate((solutions, subSolutions))
-				if len(solutions) >= stopAt:
-					return solutions
+			if grid[i, j] == 0: break
+		if grid[i, j] == 0: break
+
+	# Randomize possible values
+	values = np.arange(1, N+1)
+	np.random.shuffle(values)
+	# Try all possiblities from those values until we reach the max nb of solutions asked by stopAt
+	solutions = np.empty(shape=(0,N,N), dtype=int)
+	for value in values:
+		cGrid = np.copy(grid)
+		cGrid[i, j] = value
+		subSolutions = getSolutions(cGrid, stopAt=stopAt-len(solutions))
+		solutions = np.concatenate((solutions, subSolutions))
+		if len(solutions) >= stopAt:
 			return solutions
 	return solutions
 
@@ -80,19 +90,47 @@ def getSolutions(grid, stopAt=1):
 class SudokuEnv(gym.Env):
 	metadata = {'render.modes': ['human']}
 
+	# Make a random grid and store it in self.base
 	def __init__(self):
 		self.observation_space = spaces.Box(low=1, high=9, shape=(9, 9))
-		self.action_space = spaces.Tuple((spaces.Discrete(9), spaces.Discrete(9), spaces.Discrete(9)))
+		self.action_space = spaces.Tuple((
+			spaces.Box(low=0, high=8, shape=(2)),
+			spaces.Box(low=1, high=9, shape=(1)))
+		)
+		# Get a random solution for an empty grid
 		self.grid = []
+		self.base = getSolutions(np.zeros(shape=(9,9)))[0]
+		# Get all positions in random order, to randomly parse the grid
+		N = len(self.base)
+		positions = []
+		for i in range(N):
+			for j in range(N):
+				positions.append((i, j))
+		np.random.shuffle(positions)
+
+		count = 0
+		# Try to put 0 instead of the original value for all positions
+		# Stop after 40 --> medium difficulty
+		for i, j in positions:
+			if count > 40:
+				break
+			oldValue = self.base[i, j]
+			self.base[i, j] = 0
+			if not len(getSolutions(self.base, 2)) == 1:
+				# if more than one solution undo
+				self.base[i, j] = oldValue
+			else:
+				count += 1
 
 
+	# @return
+	# 	- a copy of the grid to prevent alteration from the user
+	# 	- a reward: - negative if action leads to an error
+	#	            - positive if action is correct or grid is resolved
+	# The user can replace a digit that was already replaced 
 	def _step(self, action):
-		i = action[0]
-		j = action[1]
-		value = action[2]
-
 		oldGrid = np.copy(self.grid)
-		self.grid[i, j] = value
+		self.grid[action[0]] = action[1]
 
 		stats = checkSolution(self.grid)
 		# If grid is complet or correct, return positive reward
@@ -106,33 +144,10 @@ class SudokuEnv(gym.Env):
 			return np.copy(self.grid), -1, False
 
 
+	# Replace self.grid with self.base
+	# Creating a new grid at every reste would be expensive
 	def _reset(self):
-		# Get a random solution for an empty grid
-		self.grid = getSolutions(np.zeros(shape=(9,9)), 1)[0]
-		# Get all positions in random order
-		N = len(self.grid)
-		positions = []
-		for i in range(N):
-			for j in range(N):
-				positions.append((i, j))
-		np.random.shuffle(positions)
-
-		count = 0
-		# Try to put 0 instead of the original value for all positions
-		# Stop after 40
-		for p in positions:
-			if count > 40: break
-			i = p[0]
-			j = p[1]
-			oldValue = self.grid[i, j]
-			self.grid[i, j] = 0
-			nbSolutions = len(getSolutions(self.grid, 2))
-			# Check that the nb of solution is still 1
-			if not nbSolutions == 1:
-				# If not, undo action
-				self.grid[i, j] = oldValue
-			else:
-				count += 1
+		self.grid = np.copy(self.base)
 
 
 	def _render(self, mode='human', close=False):
@@ -144,3 +159,20 @@ class SudokuEnv(gym.Env):
 
 env = SudokuEnv()
 env._reset()
+print env.grid
+
+# grid = np.array(
+# [[0,0,0,4,0,9,0,0,1],
+# [0,0,4,0,3,0,0,2,0],
+# [0,7,2,0,5,1,0,0,6],
+# [4,2,1,0,0,5,6,0,0],
+# [8,0,0,0,0,2,0,0,0],
+# [3,0,0,9,0,0,0,0,0],
+# [0,1,0,5,7,4,0,0,0],
+# [5,0,6,0,0,3,0,0,7],
+# [0,0,3,0,9,0,0,1,0]])
+#
+# print getSolutions(grid)
+# print getSolutions(grid)
+# print getSolutions(grid)
+# print getSolutions(grid)
