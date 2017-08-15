@@ -24,10 +24,11 @@ def checkSolution(grid):
 			n = N/3
 			iOffset = i/n*n
 			jOffset = j/n*n
+			square = grid[ iOffset:iOffset + n , jOffset:jOffset + n].flatten()
 			# Check uniqueness
 			uniqueInRow    = countItem(grid[i], grid[i, j])  == 1
 			uniqueInCol    = countItem(grid[:,j:j+1].flatten(), grid[i, j]) == 1
-			uniqueInSquare = countItem(grid[iOffset:iOffset+n, jOffset:jOffset+n].flatten(), grid[i, j]) == 1
+			uniqueInSquare = countItem(square, grid[i, j]) == 1
 
 			if not (uniqueInRow and uniqueInCol and uniqueInSquare):
 				return error
@@ -82,58 +83,52 @@ class SudokuEnv(gym.Env):
 		self.grid = []
 
 
-	# def _step(self, action):
+	def _step(self, action):
+		i = action[0]
+		j = action[1]
+		value = action[2]
+
+		oldGrid = np.copy(self.grid)
+		self.grid[i, j] = value
+
+		stats = checkSolution(self.grid)
+		# If grid is complet or correct, return positive reward
+		if stats == resolved:
+			return np.copy(self.grid), 1, True
+		elif stats == unfinished:
+			return np.copy(self.grid), 1, False
+		elif stats == error:
+			# If move is wrong, return to old state, and return negative reward
+			self.grid = oldGrid
+			return np.copy(self.grid), -1, False
 
 
 	def _reset(self):
-		self.grid = np.zeros((9,9))
+		# Get a random solution for an empty grid
+		self.grid = getSolutions(np.zeros(shape=(9,9)), 1)[0]
 
-		nbSolutions = 2
-		while nbSolutions > 1:
-			row = random.randint(0, 8)
-			col = random.randint(0, 8)
-			while self.grid[row][col] != 0:
-				row = random.randint(0, 8)
-				col = random.randint(0, 8)
-
-			self.grid[row][col] = random.randint(0, 8)
-
-			solutions = getSolutions(self.grid)
-			nbSolutions = len(solutions)
+		# Remove some values randomly
+		# Always check that the nb of solution is still 1
+		count = 0
+		while count < 30:
+			i = random.randint(0, 8)
+			j = random.randint(0, 8)
+			oldValue = self.grid[i, j]
+			self.grid[i, j] = 0
+			nbSolutions = len(getSolutions(self.grid, 2))
+			if nbSolutions != 1:
+				self.grid[i, j] = oldValue
+			else:
+				count +=1
 
 
 	def _render(self, mode='human', close=False):
-		for row in self.grid:
-			print row
+		for i in range(len(self.grid)):
+			print str(self.grid[i, 0:3]) + str(self.grid[i, 3:6]) + str(self.grid[i, 6:9])
+			if i % 3 == 2 and i != len(self.grid):
+				print '---------------------'
 
 
 
-
-
-grid = getSolutions(np.zeros(shape=(9,9)), 1)[0]
-
-count = 0
-while count < 70:
-	i = random.randint(0, 8)
-	j = random.randint(0, 8)
-	oldValue = grid[i, j]
-	grid[i, j] = 0
-	nbSolutions = len(getSolutions(grid, 2))
-	if nbSolutions != 1:
-		grid[i, j] = oldValue
-	else:
-		count +=1
-
-for i in range(len(grid)):
-	print str(grid[i, 0:3]) + str(grid[i, 3:6]) + str(grid[i, 6:9])
-	if i % 3 == 2 and i != len(grid):
-		print '---------------------'
-
-
-
-
-
-
-
-# env = SudokuEnv()
-# env._reset()
+env = SudokuEnv()
+env._reset()
