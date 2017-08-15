@@ -74,6 +74,9 @@ def getSolutions(grid, stopAt=1):
 	return solutions
 
 
+
+
+
 class SudokuEnv(gym.Env):
 	metadata = {'render.modes': ['human']}
 
@@ -106,20 +109,30 @@ class SudokuEnv(gym.Env):
 	def _reset(self):
 		# Get a random solution for an empty grid
 		self.grid = getSolutions(np.zeros(shape=(9,9)), 1)[0]
+		# Get all positions in random order
+		N = len(self.grid)
+		positions = []
+		for i in range(N):
+			for j in range(N):
+				positions.append((i, j))
+		np.random.shuffle(positions)
 
-		# Remove some values randomly
-		# Always check that the nb of solution is still 1
 		count = 0
-		while count < 30:
-			i = random.randint(0, 8)
-			j = random.randint(0, 8)
+		# Try to put 0 instead of the original value for all positions
+		# Stop after 40
+		for p in positions:
+			if count > 40: break
+			i = p[0]
+			j = p[1]
 			oldValue = self.grid[i, j]
 			self.grid[i, j] = 0
 			nbSolutions = len(getSolutions(self.grid, 2))
-			if nbSolutions != 1:
+			# Check that the nb of solution is still 1
+			if not nbSolutions == 1:
+				# If not, undo action
 				self.grid[i, j] = oldValue
 			else:
-				count +=1
+				count += 1
 
 
 	def _render(self, mode='human', close=False):
@@ -127,7 +140,6 @@ class SudokuEnv(gym.Env):
 			print str(self.grid[i, 0:3]) + str(self.grid[i, 3:6]) + str(self.grid[i, 6:9])
 			if i % 3 == 2 and i != len(self.grid):
 				print '---------------------'
-
 
 
 env = SudokuEnv()
