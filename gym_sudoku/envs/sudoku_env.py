@@ -1,6 +1,7 @@
 import gym
 from gym import spaces
 import numpy as np
+import sys
 
 
 resolved = 0
@@ -87,6 +88,7 @@ def getSolutions(grid, stopAt=1, i=-1, j=-1, omit=-1):
 
 class SudokuEnv(gym.Env):
 	metadata = {'render.modes': ['human']}
+	last_action = None
 
 	# Make a random grid and store it in self.base
 	def __init__(self):
@@ -127,6 +129,7 @@ class SudokuEnv(gym.Env):
 	# 	- a reward: - negative if action leads to an error
 	#	            - positive if action is correct or grid is resolved
 	def _step(self, action):
+		self.last_action = action
 		oldGrid = np.copy(self.grid)
 
 		# The user can't replace a value that was already set
@@ -151,15 +154,30 @@ class SudokuEnv(gym.Env):
 	# Replace self.grid with self.base
 	# Creating a new grid at every reste would be expensive
 	def _reset(self):
+		self.last_action = None
 		self.grid = np.copy(self.base)
 		return np.copy(self.grid)
 
 
 	def _render(self, mode='human', close=False):
+
 		for i in range(len(self.grid)):
-			print str(self.grid[i, 0:3]) + str(self.grid[i, 3:6]) + str(self.grid[i, 6:9])
-			if i % 3 == 2 and i != len(self.grid):
-				print '---------------------'
+			for j in range(len(self.grid)):
+				if self.last_action != None and i == self.last_action[0] and j == self.last_action[1]:
+					if self.last_action[2] == self.grid[i, j]:
+						sys.stdout.write('\033[92m' + str(self.last_action[2]) + '\033[0m')
+					else:
+						sys.stdout.write('\033[91m' + str(self.last_action[2]) + '\033[0m')
+				else:
+					sys.stdout.write(str(self.grid[i, j]))
+				if j % 3 == 2 and j != len(self.grid)-1:
+					sys.stdout.write(' | ')
+			if i % 3 == 2 and i != len(self.grid)-1:
+				sys.stdout.write('\n---------------\n')
+			else:
+				sys.stdout.write('\n')
+		sys.stdout.write('\n\n')
+		sys.stdout.flush()
 
 
 # env = SudokuEnv()
