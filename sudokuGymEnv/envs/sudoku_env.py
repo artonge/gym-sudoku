@@ -5,7 +5,6 @@ import random
 import numpy as np
 import time
 
-logger = logging.getLogger(__name__)
 
 resolved = 0
 unfinished = 1
@@ -180,7 +179,4 @@ print env.grid
 # [5,0,6,0,0,3,0,0,7],
 # [0,0,3,0,9,0,0,1,0]])
 #
-# print getSolutions(grid)
-# print getSolutions(grid)
-# print getSolutions(grid)
 # print getSolutions(grid)
