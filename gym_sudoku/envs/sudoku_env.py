@@ -164,9 +164,9 @@ class SudokuEnv(gym.Env):
 				print '---------------------'
 
 
-env = SudokuEnv()
-env._reset()
-print env.grid
+# env = SudokuEnv()
+# env._reset()
+# print env.grid
 
 # grid = np.array(
 # [[0,0,0,4,0,9,0,0,1],

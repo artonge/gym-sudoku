@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='sudokuGymEnv',
+setup(name='gym_sudoku',
 	version='0.0.4',
 	install_requires=['gym'],
 	description='Sudoku environment for OpenAI gym',
