@@ -152,6 +152,7 @@ class SudokuEnv(gym.Env):
 	# Creating a new grid at every reste would be expensive
 	def _reset(self):
 		self.grid = np.copy(self.base)
+		return np.copy(self.grid)
 
 
 	def _render(self, mode='human', close=False):

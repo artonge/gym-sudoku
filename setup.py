@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='gym_sudoku',
-	version='0.0.5',
+	version='1.0.2',
 	install_requires=['gym'],
 	description='Sudoku environment for OpenAI gym',
 	license=open('LICENCE', "r").read(),
