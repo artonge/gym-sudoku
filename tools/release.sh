@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -x
+set -xe
 
 rm -rf dist # Clean dist folder
 python setup.py bdist_wheel --universal # Build package
