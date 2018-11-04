@@ -128,7 +128,7 @@ class SudokuEnv(gym.Env):
 	# 	- a copy of the grid to prevent alteration from the user
 	# 	- a reward: - negative if action leads to an error
 	#	            - positive if action is correct or grid is resolved
-	def _step(self, action):
+	def step(self, action):
 		self.last_action = action
 		oldGrid = np.copy(self.grid)
 
@@ -153,13 +153,13 @@ class SudokuEnv(gym.Env):
 
 	# Replace self.grid with self.base
 	# Creating a new grid at every reste would be expensive
-	def _reset(self):
+	def reset(self):
 		self.last_action = None
 		self.grid = np.copy(self.base)
 		return np.copy(self.grid)
 
 
-	def _render(self, mode='human', close=False):
+	def render(self, mode='human', close=False):
 
 		for i in range(len(self.grid)):
 			for j in range(len(self.grid)):
