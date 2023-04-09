@@ -134,7 +134,7 @@ class SudokuEnv(gym.Env):
 
 		# The user can't replace a value that was already set
 		if self.grid[action[0], action[1]] != 0:
-			return np.copy(self.grid), -1, False, None
+			return np.copy(self.grid), -1, False, {}
 
 		# We add one to the action because the action space is from 0-8 and we want a value in 1-9
 		self.grid[action[0], action[1]] = action[2]+1
@@ -142,13 +142,13 @@ class SudokuEnv(gym.Env):
 		stats = checkSolution(self.grid)
 		# If grid is complet or correct, return positive reward
 		if stats == resolved:
-			return np.copy(self.grid), 1, True, None
+			return np.copy(self.grid), 1, True, {}
 		elif stats == unfinished:
-			return np.copy(self.grid), 1, False, None
+			return np.copy(self.grid), 1, False, {}
 		if stats == error:
 			# If move is wrong, return to old state, and return negative reward
 			self.grid = oldGrid
-			return np.copy(self.grid), -1, False, None
+			return np.copy(self.grid), -1, False, {}
 
 
 	# Replace self.grid with self.base
