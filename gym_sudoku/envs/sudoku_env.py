@@ -26,9 +26,9 @@ def checkSolution(grid):
 			if grid[i][j] == 0:
 				return unfinished
 
-			n = N/3
-			iOffset = i/n*n
-			jOffset = j/n*n
+			n = N//3
+			iOffset = i//n*n
+			jOffset = j//n*n
 			square = grid[ iOffset:iOffset + n , jOffset:jOffset + n].flatten()
 			# Check uniqueness
 			uniqueInRow    = countItem(grid[i], grid[i, j])  == 1
@@ -64,8 +64,8 @@ def getSolutions(grid, stopAt=1, i=-1, j=-1, omit=-1):
 
 	# If i and j are not setted, get the first empty spot and start backtracking from it
 	if i == -1:
-		for i in xrange(N):
-			for j in xrange(N):
+		for i in range(N):
+			for j in range(N):
 				# If not empty spot continue
 				if grid[i, j] == 0: break
 			if grid[i, j] == 0: break
