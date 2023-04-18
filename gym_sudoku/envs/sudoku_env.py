@@ -26,9 +26,9 @@ def checkSolution(grid):
 			if grid[i][j] == 0:
 				return unfinished
 
-			n = N/3
-			iOffset = i/n*n
-			jOffset = j/n*n
+			n = N//3
+			iOffset = i//n*n
+			jOffset = j//n*n
 			square = grid[ iOffset:iOffset + n , jOffset:jOffset + n].flatten()
 			# Check uniqueness
 			uniqueInRow    = countItem(grid[i], grid[i, j])  == 1
@@ -64,8 +64,8 @@ def getSolutions(grid, stopAt=1, i=-1, j=-1, omit=-1):
 
 	# If i and j are not setted, get the first empty spot and start backtracking from it
 	if i == -1:
-		for i in xrange(N):
-			for j in xrange(N):
+		for i in range(N):
+			for j in range(N):
 				# If not empty spot continue
 				if grid[i, j] == 0: break
 			if grid[i, j] == 0: break
@@ -94,7 +94,10 @@ class SudokuEnv(gym.Env):
 	def __init__(self):
 		# The box space is continuous. This don't apply to a sudoku grid, but there is no other choices
 		self.observation_space = spaces.Box(low=1, high=9, shape=(9, 9))
-		self.action_space = spaces.Tuple((spaces.Discrete(9), spaces.Discrete(9), spaces.Discrete(9)))
+		#self.action_space = spaces.Tuple((spaces.Discrete(9), spaces.Discrete(9), spaces.Discrete(9)))
+		self.action_space = spaces.Discrete(9*9*9)
+		action_choices = [(i,j,k) for i in range(9) for j in range(9) for k in range(9)]
+		self.action_to_choice = dict(zip(list(range(9**3)), action_choices))
 		# Get a random solution for an empty grid
 		self.grid = []
 		self.base = getSolutions(np.zeros(shape=(9,9)))[0]
@@ -129,26 +132,34 @@ class SudokuEnv(gym.Env):
 	# 	- a reward: - negative if action leads to an error
 	#	            - positive if action is correct or grid is resolved
 	def step(self, action):
-		self.last_action = action
 		oldGrid = np.copy(self.grid)
 
-		# The user can't replace a value that was already set
-		if self.grid[action[0], action[1]] != 0:
-			return np.copy(self.grid), -1, False, None
+		action_choice = self.action_to_choice[action]
+		self.last_action = action_choice
 
+		# The user can't replace a value that was already set
+		if self.grid[action_choice[0], action_choice[1]] != 0:
+			return (
+				np.copy(self.grid), 
+				-1, 
+				False, 
+				#False, 
+				{}
+			)
+		
 		# We add one to the action because the action space is from 0-8 and we want a value in 1-9
-		self.grid[action[0], action[1]] = action[2]+1
+		self.grid[action_choice[0], action_choice[1]] = action_choice[2]+1
 
 		stats = checkSolution(self.grid)
 		# If grid is complet or correct, return positive reward
 		if stats == resolved:
-			return np.copy(self.grid), 1, True, None
+			return np.copy(self.grid), 1, True,   {}
 		elif stats == unfinished:
-			return np.copy(self.grid), 1, False, None
+			return np.copy(self.grid), 1, False,  {}
 		if stats == error:
 			# If move is wrong, return to old state, and return negative reward
 			self.grid = oldGrid
-			return np.copy(self.grid), -1, False, None
+			return np.copy(self.grid), -1, False,  {}
 
 
 	# Replace self.grid with self.base

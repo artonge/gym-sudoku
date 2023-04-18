@@ -18,3 +18,6 @@ env = gym.make('Sudoku-v0')
 # Release
 
 `tools/release.sh`
+
+# Fork
+Considering fixing this issue https://github.com/artonge/gym-sudoku/issues/2
